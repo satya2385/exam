@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin - Exam Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 6px;
+      }
+      button {
+        padding: 6px 12px;
+        margin: 4px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+      }
+      button.deleteAll {
+        background: #d32f2f;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Welcome, <span id="adminNameDisplay"></span></h2>
+    <button onclick="logoutAdmin()">Logout</button>
+    <hr />
+
+    <button onclick="exportExcel()">📄 Download Excel</button>
+    <button class="deleteAll" onclick="deleteAllResults()">
+      🗑 Delete All Results
+    </button>
+
+    <h3>Student Results</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Roll</th>
+          <th>Login ID</th>
+          <th>Score</th>
+          <th>Total</th>
+          <th>Timestamp</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="resultsTable"></tbody>
+    </table>
+
+    <script type="module">
+      import { db } from "./firebase.js";
+      import {
+        collection,
+        getDocs,
+        deleteDoc,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      const adminName = localStorage.getItem("adminName");
+      if (!adminName) {
+        alert("Login as admin!");
+        window.location.href = "login.html";
+      }
+      document.getElementById("adminNameDisplay").innerText = adminName;
+      window.logoutAdmin = () => {
+        localStorage.clear();
+        window.location.href = "login.html";
+      };
+
+      const resultsTable = document.getElementById("resultsTable");
+
+      async function loadResults() {
+        resultsTable.innerHTML = "";
+        const snap = await getDocs(collection(db, "results"));
+        snap.forEach((docu) => {
+          const r = docu.data();
+          const ts = r.timestamp?.toDate
+            ? r.timestamp.toDate()
+            : new Date(r.timestamp.seconds * 1000);
+          resultsTable.innerHTML += `<tr>
+      <td>${r.studentName}</td>
+      <td>${r.roll}</td>
+      <td>${r.loginId}</td>
+      <td>${r.score}</td>
+      <td>${r.total}</td>
+      <td>${ts.toLocaleString()}</td>
+      <td><button onclick="deleteResult('${docu.id}')">Delete</button></td>
+    </tr>`;
+        });
+      }
+
+      window.deleteResult = async (id) => {
+        await deleteDoc(doc(db, "results", id));
+        loadResults();
+      };
+
+      window.deleteAllResults = async () => {
+        if (!confirm("Delete ALL results?")) return;
+        const snap = await getDocs(collection(db, "results"));
+        for (let d of snap.docs) await deleteDoc(doc(db, "results", d.id));
+        alert("All results deleted!");
+        loadResults();
+      };
+
+      window.exportExcel = async () => {
+        const snap = await getDocs(collection(db, "results"));
+        const data = snap.docs.map((d) => {
+          const r = d.data();
+          const ts = r.timestamp?.toDate
+            ? r.timestamp.toDate()
+            : new Date(r.timestamp.seconds * 1000);
+          return {
+            Name: r.studentName,
+            Roll: r.roll,
+            LoginID: r.loginId,
+            Score: r.score,
+            Total: r.total,
+            Timestamp: ts.toLocaleString(),
+          };
+        });
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Results");
+        XLSX.writeFile(wb, "Student_Results.xlsx");
+      };
+
+      loadResults();
+    </script>
+  </body>
+</html>

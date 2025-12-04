@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+      /* ---------- BODY & HEADINGS ---------- */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f4f8;
+        padding: 20px;
+        color: #333;
+      }
+      h2,
+      h3,
+      h4 {
+        color: #1976d2;
+      }
+
+      /* ---------- BUTTONS ---------- */
+      .btn {
+        padding: 10px 20px;
+        margin: 4px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: 0.25s;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+      }
+      .btn-green {
+        background: #28a745;
+        color: #fff;
+      }
+      .btn-red {
+        background: #d32f2f;
+        color: #fff;
+      }
+      .btn-blue {
+        background: #1976d2;
+        color: #fff;
+      }
+
+      /* ---------- INPUT & TEXTAREA ---------- */
+      input,
+      textarea {
+        padding: 8px;
+        width: 100%;
+        max-width: 500px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+        font-size: 15px;
+        transition: 0.2s;
+      }
+      input:focus,
+      textarea:focus {
+        border-color: #1976d2;
+        outline: none;
+        box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+      }
+
+      /* ---------- NAV BUTTONS ---------- */
+      .nav-btns {
+        margin-bottom: 20px;
+      }
+
+      /* ---------- CARD STYLE ---------- */
+      #adminPanel {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      /* ---------- TABLE ---------- */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      th {
+        background: #1976d2;
+        color: #fff;
+      }
+      tr:hover {
+        background: #f1f9ff;
+      }
+
+      /* ---------- DELETE BUTTON ---------- */
+      .delete-btn {
+        background: #d32f2f;
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .delete-btn:hover {
+        background: #b71c1c;
+      }
+
+      /* ---------- FILE INPUT ---------- */
+      input[type="file"] {
+        padding: 6px;
+      }
+
+      /* ---------- MSG ---------- */
+      #qMsg {
+        font-weight: 600;
+        color: green;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <button onclick="location.href='admin-results.html'" class="btn2">
+      Result
+    </button>
+    <button onclick="location.href='admin-students.html'" class="btn2">
+      login student
+    </button>
+
+    <h2>Welcome, <span id="userName"></span></h2>
+    <button onclick="logoutUser()">Logout</button>
+    <hr />
+    <h3>Aptitude Admin Panel</h3>
+    <textarea id="qText" placeholder="Question" rows="3" cols="60"></textarea
+    ><br /><br />
+    <input id="qO1" placeholder="Option 1" /><br /><br />
+    <input id="qO2" placeholder="Option 2" /><br /><br />
+    <input id="qO3" placeholder="Option 3" /><br /><br />
+    <input id="qO4" placeholder="Option 4" /><br /><br />
+    <input id="qCorrect" placeholder="Correct Option (1-4)" /><br /><br />
+    <button onclick="addQuestion()">Add Question</button>
+    <p id="qMsg"></p>
+    <input type="file" id="qExcelFile" accept=".xlsx,.xls" />
+    <button onclick="uploadQuestionExcel()">Upload Excel</button>
+    <br /><br />
+    <button class="deleteAll" onclick="deleteAllQuestions()">
+      🗑 Delete All Questions
+    </button>
+
+    <h4>Questions List</h4>
+    <table>
+      <tr>
+        <th>Question</th>
+        <th>Option1</th>
+        <th>Option2</th>
+        <th>Option3</th>
+        <th>Option4</th>
+        <th>Correct</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+      <tbody id="questionTable"></tbody>
+    </table>
+
+    <script type="module">
+      import { db } from "./firebase.js";
+      import {
+        collection,
+        getDocs,
+        addDoc,
+        deleteDoc,
+        updateDoc,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      const adminName = localStorage.getItem("adminName");
+      if (!adminName) {
+        alert("Login as admin!");
+        window.location.href = "login.html";
+      }
+      document.getElementById("userName").innerText = adminName + " (Admin)";
+      window.logoutUser = () => {
+        localStorage.clear();
+        window.location.href = "login.html";
+      };
+
+      window.addQuestion = async () => {
+        const q = document.getElementById("qText").value;
+        const o1 = document.getElementById("qO1").value;
+        const o2 = document.getElementById("qO2").value;
+        const o3 = document.getElementById("qO3").value;
+        const o4 = document.getElementById("qO4").value;
+        const correct = Number(document.getElementById("qCorrect").value);
+        if (!q || !o1 || !o2 || !o3 || !o4 || !correct) {
+          alert("Fill all fields!");
+          return;
+        }
+        await addDoc(collection(db, "aptitude_questions"), {
+          question: q,
+          options: [o1, o2, o3, o4],
+          correct,
+        });
+        document.getElementById("qMsg").innerText = "Question Added!";
+        loadQuestions();
+      };
+
+      async function loadQuestions() {
+        const table = document.getElementById("questionTable");
+        table.innerHTML = "";
+        const snap = await getDocs(collection(db, "aptitude_questions"));
+        snap.forEach((docu) => {
+          const q = docu.data();
+          table.innerHTML += `<tr>
+    <td>${q.question}</td><td>${q.options[0]}</td><td>${q.options[1]}</td><td>${q.options[2]}</td><td>${q.options[3]}</td><td>${q.correct}</td>
+    <td><button onclick="editQuestion('${docu.id}')">Edit</button></td>
+    <td><button onclick="deleteQuestion('${docu.id}')">Delete</button></td>
+    </tr>`;
+        });
+      }
+
+      window.deleteQuestion = async (id) => {
+        await deleteDoc(doc(db, "aptitude_questions", id));
+        loadQuestions();
+      };
+      window.editQuestion = async (id) => {
+        const newQ = prompt("Question:"),
+          o1 = prompt("Option1:"),
+          o2 = prompt("Option2:"),
+          o3 = prompt("Option3:"),
+          o4 = prompt("Option4:"),
+          correct = prompt("Correct Option (1-4):");
+        if (!newQ || !o1 || !o2 || !o3 || !o4 || !correct) return;
+        await updateDoc(doc(db, "aptitude_questions", id), {
+          question: newQ,
+          options: [o1, o2, o3, o4],
+          correct: Number(correct),
+        });
+        loadQuestions();
+      };
+
+      window.deleteAllQuestions = async () => {
+        if (!confirm("Delete ALL questions?")) return;
+        const snap = await getDocs(collection(db, "aptitude_questions"));
+        for (let d of snap.docs)
+          await deleteDoc(doc(db, "aptitude_questions", d.id));
+        alert("All deleted!");
+        loadQuestions();
+      };
+
+      window.uploadQuestionExcel = async () => {
+        const file = document.getElementById("qExcelFile").files[0];
+        if (!file) {
+          alert("Select Excel file!");
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsBinaryString(file);
+        reader.onload = async (e) => {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: "binary" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const excelData = XLSX.utils.sheet_to_json(sheet);
+          for (let x of excelData) {
+            await addDoc(collection(db, "aptitude_questions"), {
+              question: x.Question,
+              options: [x.Option1, x.Option2, x.Option3, x.Option4],
+              correct: Number(x.CorrectOption),
+            });
+          }
+          alert("Questions uploaded!");
+          loadQuestions();
+        };
+      };
+
+      loadQuestions();
+    </script>
+  </body>
+</html>

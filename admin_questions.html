@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin Dashboard - Questions</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 6px;
+      }
+      button {
+        padding: 6px 12px;
+        margin: 4px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button.deleteAll {
+        background: #d32f2f;
+        color: #fff;
+      }
+      input,
+      textarea {
+        padding: 4px;
+        width: 250px;
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Welcome, <span id="userName"></span></h2>
+    <button onclick="logoutAdmin()">Logout</button>
+    <hr />
+
+    <h3>Aptitude Questions</h3>
+
+    <textarea id="qText" placeholder="Question" rows="3" cols="60"></textarea
+    ><br />
+    <input id="qO1" placeholder="Option 1" /><br />
+    <input id="qO2" placeholder="Option 2" /><br />
+    <input id="qO3" placeholder="Option 3" /><br />
+    <input id="qO4" placeholder="Option 4" /><br />
+    <input id="qCorrect" placeholder="Correct Option (1-4)" /><br />
+    <button onclick="addQuestion()">Add Question</button>
+    <p id="qMsg" style="color: green"></p>
+
+    <h4>Upload Questions (Excel)</h4>
+    <input type="file" id="qExcelFile" accept=".xlsx,.xls" />
+    <button onclick="uploadQuestionExcel()">Upload Excel</button><br /><br />
+    <button class="deleteAll" onclick="deleteAllQuestions()">
+      🗑 Delete All Questions
+    </button>
+
+    <h4>Questions List</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Question</th>
+          <th>Option1</th>
+          <th>Option2</th>
+          <th>Option3</th>
+          <th>Option4</th>
+          <th>Correct</th>
+          <th>Edit</th>
+          <th>Delete</th>
+        </tr>
+      </thead>
+      <tbody id="questionTable"></tbody>
+    </table>
+
+    <script type="module">
+      import { db } from "./firebase.js";
+      import {
+        collection,
+        getDocs,
+        addDoc,
+        deleteDoc,
+        updateDoc,
+        doc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      const adminName = localStorage.getItem("adminName");
+      if (!adminName) {
+        alert("Login as admin!");
+        window.location.href = "login.html";
+      }
+      document.getElementById("userName").innerText = adminName;
+      window.logoutAdmin = () => {
+        localStorage.clear();
+        window.location.href = "login.html";
+      };
+
+      window.addQuestion = async () => {
+        const q = document.getElementById("qText").value;
+        const o1 = document.getElementById("qO1").value;
+        const o2 = document.getElementById("qO2").value;
+        const o3 = document.getElementById("qO3").value;
+        const o4 = document.getElementById("qO4").value;
+        const correct = Number(document.getElementById("qCorrect").value);
+        if (!q || !o1 || !o2 || !o3 || !o4 || !correct) {
+          alert("Fill all fields!");
+          return;
+        }
+        await addDoc(collection(db, "aptitude_questions"), {
+          question: q,
+          options: [o1, o2, o3, o4],
+          correct,
+        });
+        document.getElementById("qMsg").innerText = "Question Added!";
+        loadQuestions();
+      };
+
+      async function loadQuestions() {
+        const table = document.getElementById("questionTable");
+        table.innerHTML = "";
+        const snap = await getDocs(collection(db, "aptitude_questions"));
+        snap.forEach((docu) => {
+          const q = docu.data();
+          table.innerHTML += `<tr>
+      <td>${q.question}</td><td>${q.options[0]}</td><td>${q.options[1]}</td><td>${q.options[2]}</td><td>${q.options[3]}</td><td>${q.correct}</td>
+      <td><button onclick="editQuestion('${docu.id}')">Edit</button></td>
+      <td><button onclick="deleteQuestion('${docu.id}')">Delete</button></td>
+    </tr>`;
+        });
+      }
+
+      window.editQuestion = async (id) => {
+        const newQ = prompt("Question:");
+        const o1 = prompt("Option1:"),
+          o2 = prompt("Option2:"),
+          o3 = prompt("Option3:"),
+          o4 = prompt("Option4:");
+        const correct = prompt("Correct Option (1-4):");
+        if (!newQ || !o1 || !o2 || !o3 || !o4 || !correct) return;
+        await updateDoc(doc(db, "aptitude_questions", id), {
+          question: newQ,
+          options: [o1, o2, o3, o4],
+          correct: Number(correct),
+        });
+        loadQuestions();
+      };
+
+      window.deleteQuestion = async (id) => {
+        await deleteDoc(doc(db, "aptitude_questions", id));
+        loadQuestions();
+      };
+
+      window.deleteAllQuestions = async () => {
+        if (!confirm("Delete ALL questions?")) return;
+        const snap = await getDocs(collection(db, "aptitude_questions"));
+        for (let d of snap.docs)
+          await deleteDoc(doc(db, "aptitude_questions", d.id));
+        alert("All deleted!");
+        loadQuestions();
+      };
+
+      window.uploadQuestionExcel = async () => {
+        const file = document.getElementById("qExcelFile").files[0];
+        if (!file) {
+          alert("Select Excel file!");
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsBinaryString(file);
+        reader.onload = async (e) => {
+          const data = e.target.result;
+          const workbook = XLSX.read(data, { type: "binary" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const excelData = XLSX.utils.sheet_to_json(sheet);
+          for (let x of excelData) {
+            if (
+              x.Question &&
+              x.Option1 &&
+              x.Option2 &&
+              x.Option3 &&
+              x.Option4 &&
+              x.CorrectOption
+            ) {
+              await addDoc(collection(db, "aptitude_questions"), {
+                question: x.Question,
+                options: [x.Option1, x.Option2, x.Option3, x.Option4],
+                correct: Number(x.CorrectOption),
+              });
+            }
+          }
+          alert("Questions uploaded!");
+          loadQuestions();
+        };
+      };
+
+      loadQuestions();
+    </script>
+  </body>
+</html>

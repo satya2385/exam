@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Student Exam</title>
+    <link rel="stylesheet" href="styles.css" />
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      h2 {
+        color: #1976d2;
+      }
+      button {
+        padding: 6px 12px;
+        margin: 4px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        background: #1565c0;
+        color: #fff;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+      #examContainer {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      #examForm label {
+        display: block;
+        margin-bottom: 8px;
+      }
+      #msg h3 {
+        color: #1976d2;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Welcome, <span id="userName"></span></h2>
+    <button onclick="logoutUser()">Logout</button>
+    <hr />
+
+    <div id="examContainer">
+      <h3>Aptitude Exam</h3>
+      <p>Time Remaining: <span id="timer">00:00</span></p>
+      <form id="examForm"></form>
+      <p id="msg"></p>
+    </div>
+
+    <script type="module">
+      import { db } from "./firebase.js";
+      import {
+        collection,
+        getDocs,
+        addDoc,
+      } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+      const stuName = localStorage.getItem("studentName");
+      const stuRoll = localStorage.getItem("roll");
+      const loginId = localStorage.getItem("loginId");
+
+      if (!stuName || !stuRoll || !loginId) {
+        alert("Login first!");
+        window.location.href = "login.html";
+      }
+
+      document.getElementById("userName").innerText = stuName + " (Student)";
+
+      window.logoutUser = () => {
+        localStorage.clear();
+        window.location.href = "login.html";
+      };
+
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+      }
+
+      /* ---------------------------------------------------
+         DAILY LIMIT CHECK (ONLY ONE EXAM PER DAY)
+      ----------------------------------------------------*/
+      async function checkDailyLimit() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const snap = await getDocs(collection(db, "results"));
+
+        let alreadyGiven = false;
+
+        snap.forEach((d) => {
+          const r = d.data();
+          if (r.loginId === loginId && r.testType === "Aptitude Test") {
+            const t = r.timestamp?.toDate
+              ? r.timestamp.toDate()
+              : new Date(r.timestamp.seconds * 1000);
+
+            t.setHours(0, 0, 0, 0);
+
+            if (t.getTime() === today.getTime()) {
+              alreadyGiven = true;
+            }
+          }
+        });
+
+        if (alreadyGiven) {
+          document.getElementById("examContainer").innerHTML = `
+            <h3 style="color:red;">You have already taken today's exam.</h3>
+            <p>Please try again tomorrow.</p>
+          `;
+          return false;
+        }
+
+        return true;
+      }
+
+      /* ---------------------------------------------------
+         START EXAM
+      ----------------------------------------------------*/
+      async function startStudentExam() {
+        const snap = await getDocs(collection(db, "aptitude_questions"));
+        let allQ = snap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            question: data.question,
+            options: data.options,
+            correct: Number(data.correct),
+            selected: null,
+          };
+        });
+
+        let currentQuestions = shuffleArray(allQ).slice(0, 25);
+        currentQuestions.forEach((q) => {
+          q.shuffledOptions = shuffleArray(
+            q.options.map((o, i) => ({ option: o, index: i + 1 }))
+          );
+        });
+
+        let currentIndex = 0;
+        let remainingTime = 25 * 60;
+        let timerInterval;
+
+        function renderQuestion() {
+          const form = document.getElementById("examForm");
+          const q = currentQuestions[currentIndex];
+
+          let html = `<b>Q${currentIndex + 1}:</b> ${q.question}<br><br>`;
+          q.shuffledOptions.forEach((opt) => {
+            const checked = q.selected === opt.index ? "checked" : "";
+            html += `<label><input type="radio" name="q${currentIndex}" value="${opt.index}" ${checked}> ${opt.option}</label>`;
+          });
+
+          let nav = "";
+          if (currentIndex > 0)
+            nav += `<button type="button" onclick="prevQ()">Previous</button>`;
+          if (currentIndex < currentQuestions.length - 1)
+            nav += `<button type="button" onclick="nextQ()">Next</button>`;
+          if (currentIndex === currentQuestions.length - 1)
+            nav += `<button type="button" onclick="submitExam()">Submit Exam</button>`;
+
+          form.innerHTML = html + nav;
+        }
+
+        function saveSelected() {
+          const sel = document.querySelector(
+            `input[name="q${currentIndex}"]:checked`
+          );
+          if (sel) currentQuestions[currentIndex].selected = Number(sel.value);
+        }
+
+        window.nextQ = () => {
+          saveSelected();
+          currentIndex++;
+          renderQuestion();
+        };
+
+        window.prevQ = () => {
+          saveSelected();
+          currentIndex--;
+          renderQuestion();
+        };
+
+        function updateTimer() {
+          const m = Math.floor(remainingTime / 60);
+          const s = remainingTime % 60;
+          document.getElementById("timer").innerText = `${m
+            .toString()
+            .padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+        }
+
+        function startTimer() {
+          updateTimer();
+          timerInterval = setInterval(() => {
+            remainingTime--;
+            if (remainingTime <= 0) {
+              clearInterval(timerInterval);
+              submitExam();
+            }
+            updateTimer();
+          }, 1000);
+        }
+
+        async function submitExam() {
+          clearInterval(timerInterval);
+          saveSelected();
+
+          let score = 0;
+          currentQuestions.forEach((q) => {
+            if (q.selected && q.selected === q.correct) score++;
+          });
+
+          try {
+            await addDoc(collection(db, "results"), {
+              studentName: stuName,
+              roll: stuRoll,
+              loginId,
+              testType: "Aptitude Test",
+              score,
+              total: currentQuestions.length,
+              timestamp: new Date(),
+            });
+
+            document.getElementById("examForm").style.display = "none";
+            document.getElementById("timer").style.display = "none";
+            document.getElementById("msg").innerHTML = `
+              <h3>Thank You for Completing the Exam!</h3>
+              <p>Your Score: ${score}/${currentQuestions.length}</p>
+            `;
+          } catch (err) {
+            console.error(err);
+            alert("Failed to save results! Check Firebase rules.");
+          }
+        }
+
+        window.submitExam = submitExam;
+
+        renderQuestion();
+        startTimer();
+      }
+
+      /* ---------------------------------------------------
+         RUN DAILY CHECK → THEN START EXAM
+      ----------------------------------------------------*/
+      checkDailyLimit().then((allowed) => {
+        if (allowed) startStudentExam();
+      });
+    </script>
+  </body>
+</html>
