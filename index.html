@@ -5,263 +5,135 @@
 <title>Skill Test & Mock Test Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+<style>
 :root {
-  --gold: #D4AF37;
-  --blue: #2563eb;
-  --purple: #7e22ce;
-  --light: #f8fafc;
+  --blue-dark: #1e40af;
+  --blue-light: #60a5fa;
+  --white: #ffffff;
+  --text: #1e40af;
+  --shadow: rgba(30,64,175,0.1);
 }
 
+/* GLOBAL STYLES */
 body {
   margin:0;
-  font-family:'Poppins',sans-serif;
-  background:#fff;
-  color:#111;
+  font-family:'Poppins', sans-serif;
+  background: var(--white);
+  color: var(--text);
   overflow-x:hidden;
 }
 
-
-@keyframes clockPulse {
-  0%,100%{ transform:scale(1); opacity:0.8;}
-  50%{ transform:scale(1.18); opacity:1;}
-}
-
-/* HERO SECTION */
-.hero {
-  height:92vh;
-  display:grid;
-  grid-template-columns:1.2fr 0.8fr;
-  padding:80px 60px 40px;
-  align-items:center;
-  background:var(--light);
-  position:relative;
-}
-
-.hero-text h1 {
-  font-size: 56px;
-  background: linear-gradient(90deg, var(--purple), var(--blue), var(--gold));
-
-  /* Fix: Add standard + WebKit versions */
-  background-clip: text;
-  -webkit-background-clip: text;
-
-  /* Required for transparent text */
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  animation: heroFloat 3s infinite ease-in-out;
-  margin-bottom: 18px;
-  display: inline-block; /* Ensures clipping works perfectly */
-}
-
-@keyframes heroFloat {
-  0%,100%{ transform:translateY(0);}
-  50%{ transform:translateY(-10px);}
-}
-
-.hero-text p {
-  font-size:20px;
-  color:#334155;
-  line-height:1.5;
-  margin-bottom:12px;
-}
-
-.hero-text .tagline {
-  font-size:22px;
-  font-weight:600;
-  color:var(--blue);
-  margin-top:10px;
-  animation: fadeSlide 1.6s ease forwards;
-}
-
-@keyframes fadeSlide {
-  0%{opacity:0;transform:translateY(20px);}
-  100%{opacity:1;transform:translateY(0);}
-}
-
-.btn {
-  padding:12px 28px;
-  font-size:17px;
-  border:2px solid var(--gold);
-  border-radius:12px;
-  background:#fff;
-  color:var(--gold);
-  box-shadow:0 0 22px rgba(212,175,55,0.35);
-  pointer-events:none;
-  transition:0.3s;
-}
-.btn:hover { transform:scale(1.07); }
-
-/* HERO CLOCK DISPLAY */
-.hero-clock {
-  font-size: 96px;
-  font-weight: 700;
+/* EXAM SECTION */
+.daily-tests, .company-tests {
+  padding: 60px 30px;
   text-align: center;
-  background: linear-gradient(45deg, var(--blue), var(--purple), var(--gold));
-  background-clip: text;            /* Standard property */
-  -webkit-background-clip: text;    /* Chrome / Safari */
-  -webkit-text-fill-color: transparent;
-  color: transparent;               /* Extra safety for some browsers */
-  display: inline-block;            /* Ensures proper clipping */
-  animation: timerGlow 2.5s infinite alternate ease-in-out;
-}
-
-@keyframes timerGlow {
-  from{opacity:0.6;transform:scale(0.9);}
-  to{opacity:1;transform:scale(1);}
-}
-
-/* DAILY TESTS SECTION */
-.daily-tests {
-  padding:70px 30px;
-  text-align:center;
-  background:#fff;
+  background: var(--white);
 }
 
 h2.section-title {
   font-size: 36px;
-  background: linear-gradient(90deg, var(--blue), var(--purple), var(--gold));
-  background-clip: text;            /* Standard */
-  -webkit-background-clip: text;    /* Chrome/Safari */
-  -webkit-text-fill-color: transparent;
-  color: transparent;               /* Fix for some browsers */
-  display: inline-block;            /* Required for stable gradient-text */
-  margin-bottom: 14px;
-  animation: titleReveal 1.8s ease forwards;
-}
-
-@keyframes titleReveal {
-  0%{opacity:0;transform:translateY(22px);}
-  100%{opacity:1;transform:translateY(0);}
-}
-
-.test-grid {
-  display:grid;
-  gap:28px;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  margin-top:42px;
-}
-
-.test-card {
-  background:#fff;
-  padding:28px;
-  border-radius:20px;
-  border:1px solid rgba(212,175,55,0.4);
-  box-shadow:0 5px 20px rgba(37,99,235,0.1);
-  animation: cardUp 1.6s ease forwards;
-  transition:0.3s;
-}
-@keyframes cardUp {
-  0%{opacity:0;transform:translateY(26px);}
-  100%{opacity:1;transform:translateY(0);}
-}
-.test-card:hover {
-  transform:scale(1.05);
-  box-shadow:0 8px 28px rgba(126,34,206,0.25);
-}
-
-.test-card h3 {
-  font-size:22px;
-  font-weight:600;
-  color:var(--purple);
-  margin-bottom:8px;
-}
-
-.test-card .info {
-  font-size:16px;
-  font-weight:500;
-  margin-top:10px;
-  opacity:0.75;
-  color:#475569;
-}
-
-.test-card .time {
-  font-size:18px;
-  font-weight:700;
-  color:var(--blue);
-  margin-top:6px;
-}
-
-/* COMPANY SECTION */
-.company-tests {
-  padding:60px 30px;
-  text-align:center;
-  background:var(--light);
-}
-.comp-card {
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
-  border:1px solid rgba(212,175,55,0.5);
-  box-shadow:0 4px 16px rgba(126,34,206,0.12);
-  animation:compUp 1.6s ease forwards;
-  transition:0.3s;
-  pointer-events:none;
-}
-@keyframes compUp {
-  0%{opacity:0;transform:translateY(24px);}
-  100%{opacity:1;transform:translateY(0);}
-}
-.comp-card:hover {
-  transform: scale(1.06);
-  box-shadow:0 6px 22px rgba(37,99,235,0.2);
-}
-
-.comp-card h4 {
-  font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--blue), var(--purple), var(--gold));
-  background-clip: text;          /* Remove VS Code warning */
-  -webkit-background-clip: text;  /* Required for Chrome/Safari */
+  background: linear-gradient(90deg, var(--blue-dark), var(--blue-light));
+  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   color: transparent;
-  display: inline-block;
+  margin-bottom: 16px;
+}
+
+/* TEST GRID CARDS */
+.test-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.test-card, .comp-card {
+  background: var(--white);
+  border-radius: 20px;
+  border: 1px solid var(--blue-dark);
+  box-shadow: 0 6px 18px var(--shadow);
+  padding: 28px;
+  color: var(--blue-dark);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.test-card:hover, .comp-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 28px rgba(30,64,175,0.2);
+}
+
+.test-card h3, .comp-card h4 {
+  font-size: 22px;
+  font-weight: 700;
   margin-bottom: 10px;
+  background: linear-gradient(90deg, var(--blue-dark), var(--blue-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
-
-
-/* RESPONSIVE */
-@media(max-width:900px){
-  .hero{grid-template-columns:1fr;text-align:center;padding:50px 24px;}
-  .hero-clock{font-size:68px;margin-top:42px;}
-  .hero-text h1{font-size:38px;}
+.test-card .time, .test-card .info {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--blue-dark);
+  margin: 4px 0;
 }
 
-/* BUTTON GROUP BELOW CLOCK */
-.top-buttons {
-  position: fixed;
-  top: 65px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 14px;
-  z-index: 999;
+/* START BUTTON */
+.test-card .btn, .comp-card .btn {
+  margin-top: 18px;
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 2px solid var(--blue-dark);
+  background: var(--white);
+  color: var(--blue-dark);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* LOGIN BUTTON */
-.btn-login {
-  padding: 8px 18px;
-  background: var(--purple);
-  color: #fff;
+.test-card .btn:hover, .comp-card .btn:hover {
+  background: var(--blue-dark);
+  color: var(--white);
+  transform: scale(1.05);
+}
+
+/* HERO CLOCK / TIMER */
+.hero-clock, .exam-timer {
+  font-size: 64px;
+  font-weight: 700;
+  text-align: center;
+  background: linear-gradient(45deg, var(--blue-dark), var(--blue-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 24px;
+}
+
+/* LOGIN / NAV BUTTONS */
+.login-btn {
+  background: var(--white);
+  color: var(--blue-dark);
+  border: 2px solid var(--blue-dark);
+  padding: 12px 24px;
+  font-size: 18px;
   font-weight: 600;
   border-radius: 8px;
-  text-decoration: none;
+  cursor: pointer;
   transition: 0.3s;
 }
 
-/* RIGHT SIDE CIRCLE BUTTONS */
-.right-circle-buttons {
-  position: fixed;
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  z-index: 999;
+.login-btn:hover {
+  background: var(--blue-dark);
+  color: var(--white);
 }
 
+/* RIGHT SIDE CIRCLE BUTTONS */
 .circle-btn {
   width: 55px;
   height: 55px;
@@ -269,48 +141,29 @@ h2.section-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
   font-size: 24px;
-  color: white;
   font-weight: bold;
+  background: var(--blue-dark);
+  color: var(--white);
   cursor: pointer;
-  transition: 0.3s;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-/* Login Circle */
-.login-circle {
-  background: var(--purple);
-}
-
-/* WhatsApp Circle */
-.whatsapp-circle {
-  background: #25D366;
-}
-
-/* Hover Effect */
 .circle-btn:hover {
   transform: scale(1.1);
   opacity: 0.9;
 }
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .hero { grid-template-columns: 1fr; text-align: center; padding: 50px 24px; }
+  .hero-clock, .exam-timer { font-size: 48px; }
+  .hero-text h1 { font-size: 38px; }
+  .test-grid { gap: 20px; }
+}
+
+
 </style>
-<style>
-.login-btn {
-  background-color: #fff;
-  color: #1976d2;
-  border: none;
-  padding: 12px 24px;       /* increased padding */
-  font-size: 18px;          /* bigger text */
-  border-radius: 8px;       /* slightly bigger radius */
-  font-weight: bold;
-  cursor: pointer;
-  transition: 0.3s;
-  min-width: 120px;         /* optional: minimum width */
-}
-
-.login-btn:hover {
-  background-color: #e3f2fd;
-}
-
 </style>
 
 </head>
@@ -566,3 +419,4 @@ logoutBtn.addEventListener("click", () => {
 
 </body>
 </html>
+
